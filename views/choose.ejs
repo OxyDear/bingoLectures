@@ -3,31 +3,107 @@
 <% if (!picks.length) { %>
   <p class="muted">Администратор ещё не добавил пики. Загляните позже.</p>
 <% } else { %>
-<p class="muted">Отметьте пиков: <%= need %>. Выбирайте те, что, по-вашему, сбудутся. Очки указаны на каждом пике.</p>
+<p class="muted">Выберите пиков: <%= need %>, которые, по-вашему, сбудутся. Очки указаны на каждом пике.<% if (people.length) { %> Девятый пик — особый: «Пик на человека», его выбирает рулетка.<% } %></p>
+
 <form method="post" action="/events/<%= ev.id %>/card">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
+
+  <% if (people.length) { %>
+  <section class="roulette" aria-labelledby="rt">
+    <h2 id="rt">🎡 Пик на человека</h2>
+    <p class="muted">Рулетку можно крутить один раз — результат сохраняется.</p>
+    <div class="wheel-wrap">
+      <div class="pointer" aria-hidden="true"></div>
+      <svg id="wheel" class="wheel" viewBox="-100 -100 200 200" role="img" aria-label="Рулетка с людьми"></svg>
+    </div>
+    <p class="spin-result" id="spin-result" aria-live="polite"></p>
+    <button type="button" class="btn" id="spin">Крутить рулетку</button>
+  </section>
+  <% } %>
+
+  <% TIERS.forEach(t => { const g = picks.filter(p => p.points === t.points); if (!g.length) return; %>
+  <h3 class="tier t<%= t.points %>"><span class="tier-pts"><%= hot(t.points) %> <%= t.points %> очк.</span> <span>— <%= t.name %></span></h3>
   <div class="picks">
-  <% picks.forEach(p => { %>
-    <label class="pick">
+    <% g.forEach(p => { %>
+    <label class="pick <%= p.points === 10 ? 'hot' : '' %>">
       <input type="checkbox" name="picks" value="<%= p.id %>" <%= mine.has(p.id) ? 'checked' : '' %>>
-      <span class="pts"><%= p.points %> очк.</span>
+      <span class="pts"><%= hot(p.points) %> <%= p.points %> очк.</span>
       <span class="t"><%= p.title %></span>
       <% if (p.category) { %><span class="tag"><%= p.category %></span><% } %>
     </label>
-  <% }) %>
+    <% }) %>
   </div>
+  <% }) %>
+
   <div class="bar"><span id="cnt" aria-live="polite"></span><button class="btn" id="go">Сохранить карточку</button></div>
 </form>
+
 <script>
-  const need = <%= need %>, boxes = [...document.querySelectorAll('input[name=picks]')];
-  const cnt = document.getElementById('cnt'), go = document.getElementById('go');
+(function () {
+  var need = <%= need %>;
+  var people = <%- JSON.stringify(people.map(function (p) { return p.name; })).replace(/</g, '\\u003c') %>;
+  var mySpin = <%- JSON.stringify(person ? people.findIndex(function (p) { return p.id === person.id; }) : -1) %>;
+  var needSpin = people.length > 0, spun = mySpin >= 0;
+  var boxes = [].slice.call(document.querySelectorAll('input[name=picks]'));
+  var cnt = document.getElementById('cnt'), go = document.getElementById('go');
+
   function upd() {
-    const n = boxes.filter(b => b.checked).length;
-    cnt.textContent = 'Выбрано ' + n + ' из ' + need;
-    go.disabled = n !== need;
-    boxes.forEach(b => { if (!b.checked) b.disabled = n >= need; });
+    var n = boxes.filter(function (b) { return b.checked; }).length;
+    cnt.textContent = 'Выбрано ' + n + ' из ' + need + (needSpin ? (spun ? ' · рулетка сыграна' : ' · крутите рулетку') : '');
+    go.disabled = n !== need || (needSpin && !spun);
+    boxes.forEach(function (b) { if (!b.checked) b.disabled = n >= need; });
   }
-  boxes.forEach(b => b.addEventListener('change', upd)); upd();
+  boxes.forEach(function (b) { b.addEventListener('change', upd); });
+
+  if (needSpin) {
+    var NS = 'http://www.w3.org/2000/svg';
+    var wheel = document.getElementById('wheel'), btn = document.getElementById('spin'), out = document.getElementById('spin-result');
+    var n = people.length, a = 360 / n, R = 98;
+    var shades = ['#17356A', '#1F4A93', '#2B5FBF'];
+    function pt(deg, r) { var t = deg * Math.PI / 180; return [r * Math.sin(t), -r * Math.cos(t)]; }
+    function el(name, attrs) { var e = document.createElementNS(NS, name); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+    people.forEach(function (name, i) {
+      var fill = shades[i % 3]; if (i === n - 1 && i % 3 === 0 && n > 1) fill = '#3B7BFF';
+      if (n === 1) wheel.appendChild(el('circle', { r: R, fill: fill }));
+      else {
+        var p1 = pt(i * a, R), p2 = pt((i + 1) * a, R);
+        wheel.appendChild(el('path', { d: 'M0 0 L' + p1[0] + ' ' + p1[1] + ' A' + R + ' ' + R + ' 0 ' + (a > 180 ? 1 : 0) + ' 1 ' + p2[0] + ' ' + p2[1] + ' Z', fill: fill, stroke: '#0A1730', 'stroke-width': 1 }));
+      }
+      var label = name.length > 14 ? name.slice(0, 13) + '…' : name;
+      var t = el('text', { transform: 'rotate(' + ((i + 0.5) * a - 90) + ') translate(24 0)', fill: '#fff', 'font-size': Math.max(4, Math.min(9, 150 / n)), 'dominant-baseline': 'middle' });
+      t.textContent = label; wheel.appendChild(t);
+    });
+    wheel.appendChild(el('circle', { r: 9, fill: '#0A1730', stroke: '#E4F0FF', 'stroke-width': 2 }));
+
+    function angleFor(i, jitter) { return 360 - (i + 0.5) * a + jitter; }
+    function show(name) { out.textContent = 'Вам выпал: ' + name; btn.hidden = true; }
+
+    if (spun) {
+      wheel.style.transition = 'none';
+      wheel.style.transform = 'rotate(' + angleFor(mySpin, 0) + 'deg)';
+      show(people[mySpin]);
+    }
+
+    btn.addEventListener('click', function () {
+      btn.disabled = true; out.textContent = 'Крутим…';
+      fetch('/events/<%= ev.id %>/spin', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+        body: '_csrf=' + encodeURIComponent('<%= csrf %>')
+      }).then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.error || 'Ошибка'); return j; }); })
+        .then(function (j) {
+          var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          var jitter = (Math.random() - 0.5) * a * 0.6;
+          wheel.style.transition = reduce ? 'none' : '';
+          wheel.style.transform = 'rotate(' + (360 * 6 + angleFor(j.index, jitter)) + 'deg)';
+          setTimeout(function () { spun = true; show(j.name); upd(); }, reduce ? 0 : 5200);
+        })
+        .catch(function (e) { out.textContent = e.message; btn.disabled = false; });
+    });
+  }
+  upd();
+})();
 </script>
 <% } %>
 <%- include('partials/foot') %>

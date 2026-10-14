@@ -65,3 +65,23 @@ textarea{background:var(--panel);color:var(--ice);border:1px solid var(--line);b
 .import label{display:flex;flex-direction:column;gap:6px;width:100%}
 .import label.check{flex-direction:row;align-items:center;gap:8px;width:auto}
 code{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.9em}
+
+html{background:var(--bg)}
+h3.tier{font:500 1rem Unbounded,sans-serif;margin:1.6rem 0 .6rem;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.tier-pts{color:#9CC4FF}.tier.t10 .tier-pts{color:#FFB36B}
+.pick.hot{border-color:#8A5A2B}.pick.hot .pts{color:#FFB36B}
+.board.wide{max-width:560px}.board small{font-weight:400}
+.lock{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--cobalt);border-radius:14px;padding:16px 20px;margin:18px 0}
+.lock.closed{border-left-color:#FFB36B}.lock p{margin:.3rem 0 0;max-width:560px}.lock form{margin:0}
+.people{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.people .chip form{margin:0}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:99px;padding:4px 6px 4px 14px}
+.chip-x{background:none;border:0;color:var(--mute);cursor:pointer;font-size:1.2rem;line-height:1;padding:2px 8px;border-radius:99px}.chip-x:hover{color:var(--err)}
+.ap.row{display:flex;justify-content:space-between;align-items:center;gap:12px}.ap.row p{margin:0}.ap.row form{margin:0}
+.ap.res-row{display:grid;gap:8px}.ap.res-row .inline{margin:0}.narrow2{width:140px}
+.roulette{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px 20px;margin:18px 0 8px;text-align:center}
+.roulette h2{margin-top:0}
+.wheel-wrap{position:relative;width:min(320px,80vw);margin:18px auto 12px}
+.wheel{display:block;width:100%;height:auto;border-radius:50%;box-shadow:0 0 0 4px var(--line);transition:transform 5s cubic-bezier(.12,.6,.1,1)}
+.pointer{position:absolute;top:-10px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:24px solid #fff;z-index:2;filter:drop-shadow(0 2px 2px rgba(0,0,0,.5))}
+.spin-result{font:500 1.1rem Unbounded,sans-serif;min-height:1.6em;margin:10px 0}
+[hidden]{display:none!important}

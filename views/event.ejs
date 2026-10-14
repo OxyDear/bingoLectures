@@ -1,48 +1,70 @@
 <%- include('partials/head') %>
 <div class="head-row">
   <h1><%= ev.title %></h1>
-  <% if (ev.status === 'open') { %><a class="btn small ghost" href="/events/<%= ev.id %>/choose">Изменить карточку</a><% } %>
+  <% if (!closed) { %><a class="btn small ghost" href="/events/<%= ev.id %>/choose">Изменить карточку</a><% } %>
 </div>
 
+<% if (closed) { %>
 <section class="band">
   <% if (me) { %>
     <div class="rank"><span class="num">Место <%= rank %></span><span class="top-pill">Лучшие <%= top %>%</span></div>
   <% } else { %><div class="rank"><span class="num">Без карточки</span></div><% } %>
   <div class="score"><span class="muted-ink">Очки</span><span class="num big-num"><%= me ? me.score : 0 %></span></div>
 </section>
+<% } else { %>
+<p class="flash">Приём изменений открыт. Результаты и таблица лидеров появятся, когда администратор закроет изменение карточек.</p>
+<% if (hasPeople && !person) { %>
+<p class="flash">В этом событии есть «Пик на человека». <a href="/events/<%= ev.id %>/choose">Обновите карточку</a> и прокрутите рулетку.</p>
+<% } %>
+<% } %>
 
 <div class="grid">
-<% for (let i = 0; i < 9; i++) { const p = cards[i]; %>
+<% const slots = hasPeople ? 8 : 9; const total = Math.max(cards.length, slots); %>
+<% for (let i = 0; i < total; i++) { const p = cards[i]; %>
   <% if (!p) { %><div class="cell empty"></div><% } else { %>
   <div class="cell <%= p.result === 'correct' ? 'foil' : p.result === 'incorrect' ? 'dim' : 'plain' %>">
-    <div class="cell-top"><span><%= p.points %> очк.</span><span><%= p.result === 'correct' ? '✓' : p.result === 'incorrect' ? '✕' : '…' %></span></div>
+    <div class="cell-top"><span><%= hot(p.points) %> <%= p.points %> очк.</span><span><%= p.result === 'correct' ? '✓' : p.result === 'incorrect' ? '✕' : '…' %></span></div>
     <p class="t"><%= p.title %></p>
     <% if (p.category) { %><span class="tag"><%= p.category %></span><% } %>
   </div>
   <% } %>
 <% } %>
+<% if (hasPeople) { const pts = person ? person.points : null; %>
+  <div class="cell <%= !person ? 'empty' : (pts > 0 ? 'foil' : pts === 0 ? 'dim' : 'plain') %>">
+    <div class="cell-top"><span>🎡 Человек</span><span><%= pts !== null && pts !== undefined ? '+' + pts : '…' %></span></div>
+    <p class="t"><%= person ? person.name : 'Рулетка не крутилась' %></p>
+    <span class="tag">Пик на человека</span>
+  </div>
+<% } %>
 </div>
 
-<% if (cards.length) { %>
+<% if (closed && (cards.length || person)) { %>
 <h2>Итоги по пикам</h2>
 <div class="recap">
 <% cards.forEach(p => { %>
   <div class="rc <%= p.result || 'wait' %>">
-    <div class="rc-top"><span><%= p.points %> очк.</span><span class="badge"><%= p.result === 'correct' ? 'Сбылось' : p.result === 'incorrect' ? 'Не сбылось' : 'Ждём результата' %></span></div>
+    <div class="rc-top"><span><%= hot(p.points) %> <%= p.points %> очк.</span><span class="badge"><%= p.result === 'correct' ? 'Сбылось' : p.result === 'incorrect' ? 'Не сбылось' : 'Ждём результата' %></span></div>
     <p><%= p.title %></p>
     <% if (p.category) { %><span class="tag"><%= p.category %></span><% } %>
     <% if (p.explanation) { %><p class="expl"><%= p.explanation %></p><% } %>
   </div>
 <% }) %>
-</div>
+<% if (person) { const pts = person.points; %>
+  <div class="rc <%= pts > 0 ? 'correct' : pts === 0 ? 'incorrect' : 'wait' %>">
+    <div class="rc-top"><span>🎡 Пик на человека</span><span class="badge"><%= pts === null || pts === undefined ? 'Ждём результата' : '+' + pts + ' очк.' %></span></div>
+    <p><%= person.name %></p>
+  </div>
 <% } %>
+</div>
 
 <h2>Таблица лидеров</h2>
-<% if (!board.length) { %><p class="muted">Пока никто не собрал карточку.</p><% } else { %>
+<% if (!board.length) { %><p class="muted">Никто не собрал карточку.</p><% } else { %>
 <ol class="board">
-<% board.forEach((r, i) => { %>
-  <li class="<%= user && r.id === user.id ? 'me' : '' %>"><span><%= i + 1 %>. <%= r.username %></span><span class="num"><%= r.score %></span></li>
+<% board.forEach((r) => { %>
+  <li class="<%= user && r.id === user.id ? 'me' : '' %>"><span><%= r.rank %>. <%= r.username %></span><span class="num"><%= r.score %></span></li>
 <% }) %>
 </ol>
+<% } %>
+<p class="muted"><a href="/leaderboard">Общий рейтинг по всем событиям →</a></p>
 <% } %>
 <%- include('partials/foot') %>

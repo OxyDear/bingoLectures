@@ -2,31 +2,61 @@
 <div class="head-row">
   <h1><%= ev.title %></h1>
   <div class="actions">
-    <form method="post" action="/admin/events/<%= ev.id %>/status"><input type="hidden" name="_csrf" value="<%= csrf %>">
-      <button class="btn small ghost"><%= ev.status === 'open' ? 'Закрыть приём карточек' : 'Открыть приём карточек' %></button></form>
+    <a class="btn small" href="/admin/events/<%= ev.id %>/results">Результаты пиков</a>
     <form method="post" action="/admin/events/<%= ev.id %>/delete" onsubmit="return confirm('Удалить событие и все карточки?')"><input type="hidden" name="_csrf" value="<%= csrf %>">
       <button class="btn small danger">Удалить событие</button></form>
   </div>
 </div>
+
+<section class="lock <%= ev.status %>">
+  <div>
+    <strong><%= ev.status === 'open' ? '🔓 Игроки могут менять свои карточки' : '🔒 Изменение карточек закрыто' %></strong>
+    <p class="muted"><%= ev.status === 'open'
+      ? 'Результаты и таблица лидеров скрыты от игроков. После закрытия карточки изменить будет нельзя, а результаты откроются.'
+      : 'Игроки видят результаты и таблицу лидеров. Если снова открыть изменение, результаты опять будут скрыты.' %></p>
+  </div>
+  <form method="post" action="/admin/events/<%= ev.id %>/status"><input type="hidden" name="_csrf" value="<%= csrf %>">
+    <button class="btn"><%= ev.status === 'open' ? 'Закрыть изменение карточек' : 'Открыть изменение карточек' %></button></form>
+</section>
 
 <h2>Добавить пик</h2>
 <form method="post" action="/admin/events/<%= ev.id %>/picks" class="inline">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
   <label class="grow">Что должно произойти<input name="title" required maxlength="200" placeholder="Две или более машин безопасности"></label>
   <label>Категория<input name="category" maxlength="40" placeholder="Гонка"></label>
-  <label class="narrow">Очки<input type="number" name="points" min="1" max="20" value="3"></label>
+  <label>Очки<select name="points">
+    <% TIERS.forEach(t => { %><option value="<%= t.points %>" <%= t.points === 3 ? 'selected' : '' %>><%= t.points %> — <%= t.name %></option><% }) %>
+  </select></label>
   <button class="btn">Добавить пик</button>
 </form>
 
+<h2>Люди для «Пика на человека»</h2>
+<p class="muted">Если добавлен хотя бы один человек, в карточке будет 8 обычных пиков и один особый: игрок крутит рулетку, и она выбирает одного из этих людей. Очки за человека вы задаёте на странице «Результаты пиков». Добавляйте людей до того, как игроки соберут карточки.</p>
+<form method="post" action="/admin/events/<%= ev.id %>/people" class="inline">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <label class="grow">Имя<input name="name" required maxlength="60" placeholder="Например: Лэндо Норрис"></label>
+  <button class="btn">Добавить человека</button>
+</form>
+<% if (people.length) { %>
+<div class="people">
+  <% people.forEach(x => { %>
+  <span class="chip"><%= x.name %>
+    <form method="post" action="/admin/people/<%= x.id %>/delete" onsubmit="return confirm('Удалить «<%= x.name.replace(/'/g, '') %>»? Игрокам, которым он выпал, придётся крутить рулетку заново.')"><input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button class="chip-x" aria-label="Удалить <%= x.name %>">×</button></form>
+  </span>
+  <% }) %>
+</div>
+<% } else { %><p class="muted">Пока никого нет — пик на человека в карточке не появится.</p><% } %>
+
 <h2>Экспорт и импорт</h2>
-<p class="muted">Скачайте пики события в JSON-файл или загрузите их из файла. Формат: <code>{ "picks": [ { "title": "…", "category": "…", "points": 3 } ] }</code> или просто массив таких объектов (либо массив строк).</p>
+<p class="muted">Скачайте пики события в JSON-файл или загрузите их из файла. Формат: <code>{ "picks": [ { "title": "…", "category": "…", "points": 3 } ], "people": [ { "name": "…" } ] }</code>. Очки пика — только 1, 3, 5 или 10. Поле <code>people</code> необязательно. Можно также загрузить просто массив пиков или массив строк.</p>
 <p><a class="btn small ghost" href="/admin/events/<%= ev.id %>/picks.json" download>Скачать пики (JSON)</a></p>
 <form method="post" action="/admin/events/<%= ev.id %>/import" class="import" onsubmit="return !this.replace.checked || confirm('Все текущие пики события и выбранные игроками карточки будут удалены. Продолжить?')">
   <input type="hidden" name="_csrf" value="<%= csrf %>">
   <label>Файл .json<input type="file" id="json-file" accept=".json,application/json"></label>
   <label>…или вставьте JSON<textarea name="json" id="json-text" rows="6" required placeholder='{"picks":[{"title":"Две или более машин безопасности","category":"Гонка","points":3}]}'></textarea></label>
-  <label class="check"><input type="checkbox" name="replace" value="1"> Заменить существующие пики (иначе новые будут добавлены, дубликаты пропущены)</label>
-  <button class="btn">Загрузить пики</button>
+  <label class="check"><input type="checkbox" name="replace" value="1"> Заменить существующие (иначе новые будут добавлены, дубликаты пропущены)</label>
+  <button class="btn">Загрузить</button>
 </form>
 <script>
 document.getElementById('json-file').addEventListener('change', function (e) {
@@ -38,24 +68,17 @@ document.getElementById('json-file').addEventListener('change', function (e) {
 </script>
 
 <h2>Пики (<%= picks.length %>)</h2>
-<% if (!picks.length) { %><p class="muted">Добавьте минимум 9 пиков, чтобы игроки могли собрать карточку.</p><% } %>
+<% if (!picks.length) { %><p class="muted">Добавьте минимум 9 пиков (8, если есть пик на человека), чтобы игроки могли собрать карточку.</p><% } %>
+<% TIERS.forEach(t => { const g = picks.filter(p => p.points === t.points); if (!g.length) return; %>
+<h3 class="tier t<%= t.points %>"><span class="tier-pts"><%= hot(t.points) %> <%= t.points %> очк.</span> <span>— <%= t.name %></span> <span class="muted">(<%= g.length %>)</span></h3>
 <div class="admin-picks">
-<% picks.forEach(p => { %>
-  <div class="ap">
-    <p><strong><%= p.points %> очк.</strong> <%= p.title %> <% if (p.category) { %><span class="tag"><%= p.category %></span><% } %></p>
-    <form method="post" action="/admin/picks/<%= p.id %>/result" class="inline">
-      <input type="hidden" name="_csrf" value="<%= csrf %>">
-      <label>Результат<select name="result">
-        <option value="" <%= !p.result ? 'selected' : '' %>>Не определён</option>
-        <option value="correct" <%= p.result === 'correct' ? 'selected' : '' %>>Сбылся</option>
-        <option value="incorrect" <%= p.result === 'incorrect' ? 'selected' : '' %>>Не сбылся</option>
-      </select></label>
-      <label class="grow">Пояснение<input name="explanation" maxlength="300" value="<%= p.explanation %>" placeholder="Когда и как это произошло"></label>
-      <button class="btn small">Сохранить результат</button>
-    </form>
+  <% g.forEach(p => { %>
+  <div class="ap row">
+    <p><%= p.title %> <% if (p.category) { %><span class="tag"><%= p.category %></span><% } %></p>
     <form method="post" action="/admin/picks/<%= p.id %>/delete" onsubmit="return confirm('Удалить пик?')"><input type="hidden" name="_csrf" value="<%= csrf %>">
-      <button class="link danger-text">Удалить пик</button></form>
+      <button class="link danger-text">Удалить</button></form>
   </div>
-<% }) %>
+  <% }) %>
 </div>
+<% }) %>
 <%- include('partials/foot') %>
