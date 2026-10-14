@@ -1,0 +1,15 @@
+<%- include('partials/head') %>
+<h1>Админка</h1>
+<form method="post" action="/admin/events" class="inline">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <label class="grow">Новое событие<input name="title" required maxlength="120" placeholder="Например: Гран-при Сингапура"></label>
+  <button class="btn">Создать событие</button>
+</form>
+<ul class="list">
+<% events.forEach(e => { %>
+  <li class="row"><div><a class="big" href="/admin/events/<%= e.id %>"><%= e.title %></a>
+    <p class="muted">Пиков: <%= e.total %>. <%= e.status === 'open' ? 'Приём открыт' : 'Приём закрыт' %></p></div>
+    <a class="btn small ghost" href="/admin/events/<%= e.id %>">Управлять</a></li>
+<% }) %>
+</ul>
+<%- include('partials/foot') %>

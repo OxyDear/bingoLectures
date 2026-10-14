@@ -1,0 +1,48 @@
+<%- include('partials/head') %>
+<div class="head-row">
+  <h1><%= ev.title %></h1>
+  <% if (ev.status === 'open') { %><a class="btn small ghost" href="/events/<%= ev.id %>/choose">Изменить карточку</a><% } %>
+</div>
+
+<section class="band">
+  <% if (me) { %>
+    <div class="rank"><span class="num">Место <%= rank %></span><span class="top-pill">Лучшие <%= top %>%</span></div>
+  <% } else { %><div class="rank"><span class="num">Без карточки</span></div><% } %>
+  <div class="score"><span class="muted-ink">Очки</span><span class="num big-num"><%= me ? me.score : 0 %></span></div>
+</section>
+
+<div class="grid">
+<% for (let i = 0; i < 9; i++) { const p = cards[i]; %>
+  <% if (!p) { %><div class="cell empty"></div><% } else { %>
+  <div class="cell <%= p.result === 'correct' ? 'foil' : p.result === 'incorrect' ? 'dim' : 'plain' %>">
+    <div class="cell-top"><span><%= p.points %> очк.</span><span><%= p.result === 'correct' ? '✓' : p.result === 'incorrect' ? '✕' : '…' %></span></div>
+    <p class="t"><%= p.title %></p>
+    <% if (p.category) { %><span class="tag"><%= p.category %></span><% } %>
+  </div>
+  <% } %>
+<% } %>
+</div>
+
+<% if (cards.length) { %>
+<h2>Итоги по пикам</h2>
+<div class="recap">
+<% cards.forEach(p => { %>
+  <div class="rc <%= p.result || 'wait' %>">
+    <div class="rc-top"><span><%= p.points %> очк.</span><span class="badge"><%= p.result === 'correct' ? 'Сбылось' : p.result === 'incorrect' ? 'Не сбылось' : 'Ждём результата' %></span></div>
+    <p><%= p.title %></p>
+    <% if (p.category) { %><span class="tag"><%= p.category %></span><% } %>
+    <% if (p.explanation) { %><p class="expl"><%= p.explanation %></p><% } %>
+  </div>
+<% }) %>
+</div>
+<% } %>
+
+<h2>Таблица лидеров</h2>
+<% if (!board.length) { %><p class="muted">Пока никто не собрал карточку.</p><% } else { %>
+<ol class="board">
+<% board.forEach((r, i) => { %>
+  <li class="<%= user && r.id === user.id ? 'me' : '' %>"><span><%= i + 1 %>. <%= r.username %></span><span class="num"><%= r.score %></span></li>
+<% }) %>
+</ol>
+<% } %>
+<%- include('partials/foot') %>

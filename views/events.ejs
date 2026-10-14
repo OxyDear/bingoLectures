@@ -1,0 +1,13 @@
+<%- include('partials/head') %>
+<h1>События</h1>
+<% if (!events.length) { %><p class="muted">Событий пока нет. Администратор добавит первое.</p><% } %>
+<ul class="list">
+<% events.forEach(e => { %>
+  <li class="row">
+    <div><a class="big" href="/events/<%= e.id %>"><%= e.title %></a>
+      <p class="muted">Пиков: <%= e.total %>. <%= e.status === 'open' ? 'Приём карточек открыт' : 'Приём закрыт' %></p></div>
+    <a class="btn small" href="/events/<%= e.id %>"><%= e.mine ? 'Моя карточка' : (e.status === 'open' ? 'Выбрать пики' : 'Смотреть') %></a>
+  </li>
+<% }) %>
+</ul>
+<%- include('partials/foot') %>

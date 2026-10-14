@@ -1,0 +1,61 @@
+<%- include('partials/head') %>
+<div class="head-row">
+  <h1><%= ev.title %></h1>
+  <div class="actions">
+    <form method="post" action="/admin/events/<%= ev.id %>/status"><input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button class="btn small ghost"><%= ev.status === 'open' ? 'Закрыть приём карточек' : 'Открыть приём карточек' %></button></form>
+    <form method="post" action="/admin/events/<%= ev.id %>/delete" onsubmit="return confirm('Удалить событие и все карточки?')"><input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button class="btn small danger">Удалить событие</button></form>
+  </div>
+</div>
+
+<h2>Добавить пик</h2>
+<form method="post" action="/admin/events/<%= ev.id %>/picks" class="inline">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <label class="grow">Что должно произойти<input name="title" required maxlength="200" placeholder="Две или более машин безопасности"></label>
+  <label>Категория<input name="category" maxlength="40" placeholder="Гонка"></label>
+  <label class="narrow">Очки<input type="number" name="points" min="1" max="20" value="3"></label>
+  <button class="btn">Добавить пик</button>
+</form>
+
+<h2>Экспорт и импорт</h2>
+<p class="muted">Скачайте пики события в JSON-файл или загрузите их из файла. Формат: <code>{ "picks": [ { "title": "…", "category": "…", "points": 3 } ] }</code> или просто массив таких объектов (либо массив строк).</p>
+<p><a class="btn small ghost" href="/admin/events/<%= ev.id %>/picks.json" download>Скачать пики (JSON)</a></p>
+<form method="post" action="/admin/events/<%= ev.id %>/import" class="import" onsubmit="return !this.replace.checked || confirm('Все текущие пики события и выбранные игроками карточки будут удалены. Продолжить?')">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <label>Файл .json<input type="file" id="json-file" accept=".json,application/json"></label>
+  <label>…или вставьте JSON<textarea name="json" id="json-text" rows="6" required placeholder='{"picks":[{"title":"Две или более машин безопасности","category":"Гонка","points":3}]}'></textarea></label>
+  <label class="check"><input type="checkbox" name="replace" value="1"> Заменить существующие пики (иначе новые будут добавлены, дубликаты пропущены)</label>
+  <button class="btn">Загрузить пики</button>
+</form>
+<script>
+document.getElementById('json-file').addEventListener('change', function (e) {
+  var f = e.target.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function () { document.getElementById('json-text').value = r.result; };
+  r.readAsText(f, 'utf-8');
+});
+</script>
+
+<h2>Пики (<%= picks.length %>)</h2>
+<% if (!picks.length) { %><p class="muted">Добавьте минимум 9 пиков, чтобы игроки могли собрать карточку.</p><% } %>
+<div class="admin-picks">
+<% picks.forEach(p => { %>
+  <div class="ap">
+    <p><strong><%= p.points %> очк.</strong> <%= p.title %> <% if (p.category) { %><span class="tag"><%= p.category %></span><% } %></p>
+    <form method="post" action="/admin/picks/<%= p.id %>/result" class="inline">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <label>Результат<select name="result">
+        <option value="" <%= !p.result ? 'selected' : '' %>>Не определён</option>
+        <option value="correct" <%= p.result === 'correct' ? 'selected' : '' %>>Сбылся</option>
+        <option value="incorrect" <%= p.result === 'incorrect' ? 'selected' : '' %>>Не сбылся</option>
+      </select></label>
+      <label class="grow">Пояснение<input name="explanation" maxlength="300" value="<%= p.explanation %>" placeholder="Когда и как это произошло"></label>
+      <button class="btn small">Сохранить результат</button>
+    </form>
+    <form method="post" action="/admin/picks/<%= p.id %>/delete" onsubmit="return confirm('Удалить пик?')"><input type="hidden" name="_csrf" value="<%= csrf %>">
+      <button class="link danger-text">Удалить пик</button></form>
+  </div>
+<% }) %>
+</div>
+<%- include('partials/foot') %>
