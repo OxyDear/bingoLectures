@@ -1,0 +1,47 @@
+<%- include('partials/head') %>
+<div class="head-row">
+  <h1>Результаты: <%= ev.title %></h1>
+  <a class="btn small ghost" href="/admin/events/<%= ev.id %>">← К событию</a>
+</div>
+<p class="muted">Игроки увидят результаты только после того, как вы закроете изменение карточек.
+  Сейчас: <strong><%= ev.status === 'open' ? 'изменение открыто, результаты скрыты' : 'изменение закрыто, результаты видны' %></strong>.</p>
+
+<% if (!picks.length && !people.length) { %><p class="muted">В событии пока нет пиков.</p><% } else { %>
+<form method="post" action="/admin/events/<%= ev.id %>/results">
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+
+  <% if (people.length) { %>
+  <h3 class="tier"><span class="tier-pts">🎡 Пик на человека</span> <span>— очки за каждого</span></h3>
+  <div class="admin-picks">
+    <% people.forEach(x => { %>
+    <div class="ap res-row">
+      <p><strong><%= x.name %></strong></p>
+      <label class="narrow2">Очки<input type="number" name="pp_<%= x.id %>" min="0" max="100" step="1" value="<%= x.points === null ? '' : x.points %>" placeholder="—"></label>
+    </div>
+    <% }) %>
+  </div>
+  <% } %>
+
+  <% TIERS.forEach(t => { const g = picks.filter(p => p.points === t.points); if (!g.length) return; %>
+  <h3 class="tier t<%= t.points %>"><span class="tier-pts"><%= hot(t.points) %> <%= t.points %> очк.</span> <span>— <%= t.name %></span></h3>
+  <div class="admin-picks">
+    <% g.forEach(p => { %>
+    <div class="ap res-row">
+      <p><%= p.title %> <% if (p.category) { %><span class="tag"><%= p.category %></span><% } %></p>
+      <div class="inline">
+        <label>Результат<select name="result_<%= p.id %>">
+          <option value="" <%= !p.result ? 'selected' : '' %>>Не определён</option>
+          <option value="correct" <%= p.result === 'correct' ? 'selected' : '' %>>Сбылся</option>
+          <option value="incorrect" <%= p.result === 'incorrect' ? 'selected' : '' %>>Не сбылся</option>
+        </select></label>
+        <label class="grow">Пояснение<input name="expl_<%= p.id %>" maxlength="300" value="<%= p.explanation %>" placeholder="Когда и как это произошло"></label>
+      </div>
+    </div>
+    <% }) %>
+  </div>
+  <% }) %>
+
+  <div class="bar"><span class="muted">Сохраняются все результаты сразу</span><button class="btn">Сохранить результаты</button></div>
+</form>
+<% } %>
+<%- include('partials/foot') %>
